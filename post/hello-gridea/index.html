@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>你好 👏  欢迎来到Stephen的个人主页 | Stephen&#39;s Personal Page</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://stephencardev.github.io/favicon.ico?v=1717653324813">
+<link rel="stylesheet" href="https://stephencardev.github.io/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="博客站点由来
+最近工作之余，我经常在CSDN和掘金上发文，记录一下工作经验，还有近期折腾的好玩的东西。得到了很多反馈，也结识了一些技术大佬。还是决定花一上午鼓捣一下，用github.io搭建一个属于自己的博客网站。专注于记录，日后也方便其他..." />
+    <meta name="keywords" content="Gridea" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://stephencardev.github.io">
+        <img src="https://stephencardev.github.io/images/avatar.png?v=1717653324813" class="site-logo">
+        <h1 class="site-title">Stephen&#39;s Personal Page</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      在行中知，在知中行
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://stephencardev.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">你好 👏  欢迎来到Stephen的个人主页</h2>
+            <div class="post-date">2024-06-01</div>
+            
+              <div class="feature-container" style="background-image: url('https://stephencardev.github.io/post-images/hello-gridea.jpg')">
+              </div>
+            
+            <div class="post-content" v-pre>
+              <h1 id="博客站点由来">博客站点由来</h1>
+<p>最近工作之余，我经常在CSDN和掘金上发文，记录一下工作经验，还有近期折腾的好玩的东西。得到了很多反馈，也结识了一些技术大佬。还是决定花一上午鼓捣一下，用github.io搭建一个属于自己的博客网站。专注于记录，日后也方便其他人了解我的技术栈和工作风格。</p>
+<p>因为本科学的嵌入式物联网，工作又转了车机Android，服务器后端完全不熟，所以直接用Gridea来完成大部分的前后端工作。我可以节省掉搭建网站的精力，只专注于文章的撰写，发布分享有意思的技术。</p>
+<p>本站的访问量我估计只限于一同搞技术的朋友们，所以还是拿来主要当作记录之用。比如学习过程中的代码笔记，供日后温习查看；工作中积累的经验，提炼出通用的部分；个人和朋友们发掘的一些有意思或者高效率的代码写法。</p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://stephencardev.github.io/tag/4tpluVFZy/" class="tag">
+                    Gridea
+                  </a>
+                
+              </div>
+            
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'Ov23lixgLaEQaGAsum3I',
+        clientSecret: '9b93916755a6b8704580aa244f9fab01735829bf',
+        repo: 'stephencardev.github.io',
+        owner: 'StephenCarDev',
+        admin: ['StephenCarDev'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Android多进程通信之带回调的AIDL实现 | Stephen&#39;s Personal Page</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://stephencardev.github.io/favicon.ico?v=1717653324813">
+<link rel="stylesheet" href="https://stephencardev.github.io/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="需求背景
+我们都知道Android系统的IPC(多进程通信)方式有很多种，像全局广播，系统数据库监听，还有最广为使用的AIDL接口。
+最近我收到了来自语音app的需求，他们为了可以顺利注册可见即可说（扫描模拟点击），需要我在打开和关闭界面的..." />
+    <meta name="keywords" content="应用层" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://stephencardev.github.io">
+        <img src="https://stephencardev.github.io/images/avatar.png?v=1717653324813" class="site-logo">
+        <h1 class="site-title">Stephen&#39;s Personal Page</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      在行中知，在知中行
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://stephencardev.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Android多进程通信之带回调的AIDL实现</h2>
+            <div class="post-date">2024-06-04</div>
+            
+              <div class="feature-container" style="background-image: url('https://stephencardev.github.io/post-images/android-duo-jin-cheng-tong-xin-zhi-dai-hui-diao-de-aidl-shi-xian.jpg')">
+              </div>
+            
+            <div class="post-content" v-pre>
+              <h1 id="需求背景">需求背景</h1>
+<p>我们都知道Android系统的IPC(多进程通信)方式有很多种，像全局广播，系统数据库监听，还有最广为使用的AIDL接口。</p>
+<p>最近我收到了来自语音app的需求，他们为了可以顺利注册可见即可说（扫描模拟点击），需要我在打开和关闭界面的时候给他们发个通知。因为我们的应用是采用windowmanager添加的一个临时弹窗，不能通过ActivityStack栈监听到变化，所以需要做这么一个接口给他们。</p>
+<p>由于之前已经给语音侧打包过AIDL依赖包，提供过打开关闭界面，获取模式状态等接口了，所以希望基于已有的接口上进行扩展，使用注册监听的形式来给他们发回调通知，告诉他们界面状态有变动。</p>
+<p>刚着手准备做，突然想起来这个带回调的AIDL接口好像之前还没有开发过，于是简单看了下，记录下开发过程。不得不感叹谷歌真的懒，这套AIDL的写法，感觉还是有点繁琐。光记录这个加回调AIDL方法的过程实在太短了，这里将我给外部app提供依赖包的习惯也一起记录下吧。</p>
+<h1 id="以aar的形式提供aidl接口">以aar的形式提供AIDL接口</h1>
+<p>Google官方的例程一般是，作为服务端的app和作为客户端的app两边建立一个同样包名的AIDL文件夹，客户端再去自己做一个bindService的操作，连接成功时，用返回来的binder对象将服务给实例化，使用其中的方法。但是就拿语音距离，大家都这么给语音客户端提供接口的话，他们那边的项目复杂度要爆炸了，所以一般是由提供接口的Server端将客户端连服务的操作也自己实现了，作为一个本地的library模组，一起打一个aar包提供出去。</p>
+<p>接下来以两个Demo的代码示例演示下这个打包的流程，我们以一个车速模拟的需求为例:</p>
+<h2 id="新建模组配置gradle">新建模组配置gradle</h2>
+<p>在项目里new一个Module，记得选择Library类型，AS会自动帮我们填到setting.gradle.kts中。</p>
+<p>接下来我们在新module的gradle构建配置中开启aidl，这样才能新建aidl接口声明文件。第二个改动就是配置构建输出文件名。</p>
+<pre><code>buildFeatures {
+    aidl = true
+}
+ 
+ 
+val aarName = &quot;CarSpeedMock&quot;
+android.libraryVariants.configureEach {
+    outputs.all {
+        if (this is com.android.build.gradle.internal.api.LibraryVariantOutputImpl) {
+            this.outputFileName = &quot;${aarName}_1.0.aar&quot;
+        }
+    }
+}
+</code></pre>
+<p>这样我们在打包的时候就可以顺利生成一个aar依赖包的输出文件，将这个依赖包提供给接口使用方，可以大大简化他们的工作量，解耦代码，可增强可维护性。</p>
+<h1 id="开始实现aidl接口回调需求">开始实现AIDL接口回调需求</h1>
+<h2 id="配置server与client代理的aidl文件">配置Server与Client代理的aidl文件</h2>
+<p>我们需要模拟一下车速数据的回调，需要新建一个主要的接口声明文件，里面添加一个设置回调的方法，然后需要再声明一个回调接口，里面是onChange的方法。</p>
+<pre><code>// ISpeedCallback.aidl
+interface ISpeedCallback {
+   void onSpeedChange( int speed);
+}
+ 
+// SpeedMockManager.aidl
+import com.stephen.vehiclesettings.ISpeedCallback;
+ 
+interface SpeedMockManager {
+    void addSpeedCallback(ISpeedCallback callback);
+}
+</code></pre>
+<p>然后将整个文件夹都复制到新建的模组中去，保证客户端和服务端两边的aidl文件夹完全相同。<br>
+<img src="https://stephencardev.github.io/post-images/1717488972065.png" alt="" loading="lazy"><br>
+项目里的两边同步之后，我们点击小锤子build一下，以便AS可以生成格式化的stub文件。</p>
+<h2 id="实现服务端和客户端的逻辑">实现服务端和客户端的逻辑</h2>
+<p>在服务端里，我们在onBind方法里返回一个binder对象，它要实现 SpeedMockManager.Stub接口，才可以和客户端顺利对接。</p>
+<p>服务端代码如下:</p>
+<pre><code>class SpeedMockService : Service() {
+ 
+    override fun onCreate() {
+        super.onCreate()
+        infoLog()
+    }
+ 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        infoLog()
+        return super.onStartCommand(intent, flags, startId)
+    }
+ 
+    override fun onBind(intent: Intent) = object : SpeedMockManager.Stub() {
+        @Throws(RemoteException::class)
+        override fun addSpeedCallback(callback: ISpeedCallback?) {
+            // 采用协程循环和延时来模拟回调车速数据
+            CoroutineScope(Dispatchers.IO).launch {
+                repeat(1000) { data -&gt;
+                    delay(2000L)
+                    infoLog(&quot;aidl send int data: $data&quot;)
+                    try {
+                        // 调用传进来的1回调接口的方法，将数据返回去
+                        callback?.onSpeedChange(data)
+                    } catch (e: Exception) {
+                      e.printStackTrace()
+                        this.cancel()
+                    }
+                }
+            }
+        }
+    }
+}
+</code></pre>
+<p>同样的在客户端代理里面，去执行bindService。需要注意的是，我们的客户端代理类里面，需要多设置一个连接服务成功的接口，在连接成功的时候通知到使用方，我们的服务这时候绑定成功了，以后可以使用里面的方法了。</p>
+<p>客户端代理代码如下：</p>
+<pre><code>object CarSpeedProxy {
+ 
+    private const val TAG = &quot;CarSpeedProxy&quot;
+ 
+    private lateinit var carspeedManager: SpeedMockManager
+ 
+    fun init(context: Context, connectListener: CarSpeedServiceConnectListener) {
+        context.bindService(Intent(&quot;com.stephen.vehiclesettings.service.SpeedMockService&quot;).apply {
+            setPackage(&quot;com.stephen.vehiclesettings&quot;)
+        }, object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                Log.i(TAG, &quot;onServiceConnected: name:$name&quot;)
+                // 接口实例化
+                carspeedManager = SpeedMockManager.Stub.asInterface(service)
+                // 连接成功回调，告知使用方
+                connectListener.onServiceConnected()
+            }
+ 
+            override fun onServiceDisconnected(name: ComponentName?) {
+                Log.i(TAG, &quot;onServiceDisconnected: name:$name&quot;)
+                connectListener.onServiceDisConnected()
+            }
+ 
+        }, Context.BIND_AUTO_CREATE)
+    }
+ 
+    fun addCarSpeedCallback(callback: ISpeedCallback) {
+        // 添加回调接口，使用方就可以接收数据了
+        try {
+            carspeedManager.addSpeedCallback(callback)
+        } catch (e: RemoteException) {
+            e.printStackTrace()
+        }
+    }
+ 
+    /**
+     * 服务连接接口
+     */
+    interface CarSpeedServiceConnectListener{
+        fun onServiceConnected()
+        fun onServiceDisConnected()
+    }
+}
+</code></pre>
+<h1 id="需求方使用aar">需求方使用aar</h1>
+<p>服务端和客户端的逻辑都完成后，将这个依赖包提供给需求方展开调试，看看服务连接和数据回调有没有问题。注意此Demo运行在我自己编译的系统中，而且配置了系统签名，拥有System权限，所以不用考虑服务保活问题。</p>
+<p>使用这个接口的app，需要将我们提供的aar依赖包放在libs文件夹下，并在gradle里添加编译路径。这里我也新建一个需求方的Demo来测试我们的aar是否工作正常，使用我们aar里的客户端代理类去初始化连接服务，添加回调，并接收来自服务端模拟的车速数据了。</p>
+<p>我们在Demo里也使用一个单例类来专门管理这个aar的业务逻辑，进一步解耦。在Application初始化调用init方法连接服务，在正式的使用处确保连接成功后，再添加回调，拿取数据：</p>
+<pre><code>object AidlCallbackTest {
+ 
+    private var isServiceReady = false
+ 
+    fun init() {
+        CarSpeedProxy.init(appContext, object : CarSpeedProxy.CarSpeedServiceConnectListener {
+            override fun onServiceConnected() {
+                LogUtils.i(&quot;AidlCallbackTest&quot;, &quot;onServiceConnected&quot;)
+                isServiceReady = true
+            }
+ 
+            override fun onServiceDisConnected() {
+                LogUtils.i(&quot;AidlCallbackTest&quot;, &quot;onServiceDisConnected&quot;)
+            }
+ 
+        })
+    }
+ 
+    fun addCallback(callback: ISpeedCallback) {
+        if (isServiceReady)
+            CarSpeedProxy.addCarSpeedCallback(callback)
+    }
+}
+</code></pre>
+<p>在方法调用处，我们需要传入的这个回调，即一个匿名内部类继承自ISpeedCallback.Stub，实现它的onSpeedChange(a:Int)回调方法，就可以接收到数据了：</p>
+<pre><code>AidlCallbackTest.addCallback(object : ISpeedCallback.Stub() {
+    override fun onSpeedChange(speedData: Int) {
+        LogUtils.i(TAG, &quot;onSpeedChange speed:$speedData&quot;)
+    }
+})
+</code></pre>
+<p>先run进去服务端，再run刚刚写的客户端，两个进程都运行起来后，查看AS的Log打印我们可以看到服务成功连接了。再点击Demo的按钮添加上callback回调，可以看到Server和Client两边的模拟数据的打印也都打印出来了，设备不在手边就不再截图了。</p>
+<p>这样一个带回调的AIDL接口，就成功地以aar的形式提供给需求方，由他们去使用数据做业务了。</p>
+<h1 id="扩展">扩展</h1>
+<p>最后，如果需要扩展接口功能，我们不止可以在AIDL接口中回调像int和String这种基本数据类型，也可以传输一个实现了实现了Parcelable接口的实体类，获取其中的多样化的属性数据。</p>
+<p>总结一下就是，简单需求用AIDL接口基本数据类型就足够了。大量数据我们可以用系统数据库的方式传输JSON，或者用全局的键值对存储工具，更大的需求就可以写共享文件，再发单次成功的通知让对方去获取。</p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://stephencardev.github.io/tag/k5HqzrYnY/" class="tag">
+                    应用层
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://stephencardev.github.io/post/hello-gridea/">
+                  <h3 class="post-title">
+                    你好 👏  欢迎来到Stephen的个人主页
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'Ov23lixgLaEQaGAsum3I',
+        clientSecret: '9b93916755a6b8704580aa244f9fab01735829bf',
+        repo: 'stephencardev.github.io',
+        owner: 'StephenCarDev',
+        admin: ['StephenCarDev'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

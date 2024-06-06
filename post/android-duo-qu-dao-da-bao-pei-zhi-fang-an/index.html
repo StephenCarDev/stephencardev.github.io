@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Android多渠道打包配置方案 | Stephen&#39;s Personal Page</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://stephencardev.github.io/favicon.ico?v=1717653324813">
+<link rel="stylesheet" href="https://stephencardev.github.io/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="​
+背景
+多渠道打包，顾名思义就是用来区分同一个软件，在不同渠道上的释放版本。
+这个手机上大型app几乎是必配置的一个项，给不同型号的手机所用的apk会做一些细微的区别。像笔者使用酷安社区比较多，在官网下载的酷安apk界面顶部有软件管理功能..." />
+    <meta name="keywords" content="应用层" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://stephencardev.github.io">
+        <img src="https://stephencardev.github.io/images/avatar.png?v=1717653324813" class="site-logo">
+        <h1 class="site-title">Stephen&#39;s Personal Page</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      在行中知，在知中行
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://stephencardev.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Android多渠道打包配置方案</h2>
+            <div class="post-date">2024-06-05</div>
+            
+              <div class="feature-container" style="background-image: url('https://stephencardev.github.io/post-images/android-duo-qu-dao-da-bao-pei-zhi-fang-an.jpg')">
+              </div>
+            
+            <div class="post-content" v-pre>
+              <p>​</p>
+<h1 id="背景">背景</h1>
+<p>多渠道打包，顾名思义就是用来区分同一个软件，在不同渠道上的释放版本。</p>
+<p>这个手机上大型app几乎是必配置的一个项，给不同型号的手机所用的apk会做一些细微的区别。像笔者使用酷安社区比较多，在官网下载的酷安apk界面顶部有软件管理功能，在其他手机厂的应用商店里下载的酷安就没有这个功能。</p>
+<p>目前我们有需求是要一套软件代码库多个项目共同使用，针对不同的项目打包不同的渠道apk，现学记录一下。</p>
+<h1 id="gradle脚本和manifest文件配置">Gradle脚本和Manifest文件配置</h1>
+<p>不同渠道的apk既然要做细微的功能上的区分，就需要在代码里能拿到一个类似键值对的标志位。并且能够全局调用。首先我们需要在app级的gradle文件里配置不同的channel名称。</p>
+<p>其中flavorDimensions和productFlavors中的维度名称需要一一对应。随便写一个&quot;default&quot;即可。</p>
+<pre><code>defaultConfig {
+
+    xxxx = xxxx
+
+    flavorDimensions.add(&quot;default&quot;)  
+}
+</code></pre>
+<p>gradle.kts语法与Groovy略有不同，要添加自己配置的东西一般是使用create，register之类的关键字，不熟悉配置的可以先试试。</p>
+<p>不同渠道包的域里，我们可以区分很多参数值，像这里我是配置了不同渠道使用不同平台的签名。</p>
+<pre><code> productFlavors {
+        create(&quot;cheetah&quot;) {
+            dimension = &quot;default&quot;
+            signingConfig = signingConfigs.getByName(&quot;cheetah&quot;)
+            manifestPlaceholders[&quot;CHANNEL_VALUE&quot;] = &quot;cheetah_channel&quot;
+        }
+        create(&quot;redfin&quot;) {
+            dimension = &quot;default&quot;
+            signingConfig = signingConfigs.getByName(&quot;aaos&quot;)
+            manifestPlaceholders[&quot;CHANNEL_VALUE&quot;] = &quot;redfin_channel&quot;
+        }
+}
+</code></pre>
+<p>为了可以设置成自己想要的键值对，建议在Manifest清单文件里设置一组元数据，在打包时让Gradle去赋值它。结合上下两段代码，我们在Manifest里的一组元数据，key设为CHANNEL，value为引用型的变量CHANNEL_VALUE，在Gradle渠道配置里，我们使用：</p>
+<pre><code> manifestPlaceholders[&quot;CHANNEL_VALUE&quot;] = &quot;cheetah_channel&quot;
+</code></pre>
+<p>来为其赋值。</p>
+<pre><code>   &lt;meta-data
+            android:name=&quot;CHANNEL&quot;
+            android:value=&quot;${CHANNEL_VALUE}&quot; /&gt;
+</code></pre>
+<p>打包时，可以通过判断flavor的名称，来输出不同的apk名字。</p>
+<pre><code>    android.applicationVariants.configureEach {
+        outputs.all {
+            if (this is com.android.build.gradle.internal.api.ApkVariantOutputImpl) {
+                if (flavorName == &quot;redfin&quot;) {
+                    this.outputFileName = &quot;RedfinChannel_V${versionName}.apk&quot;
+                } else if (flavorName == &quot;cheetah&quot;) {
+                    this.outputFileName = &quot;CheetahChannel_V${versionName}.apk&quot;
+                }
+            }
+        }
+    }
+</code></pre>
+<h1 id="代码调用">代码调用</h1>
+<p>全局性的打包配置完毕后，我们如何在代码里去使用区分不同渠道呢。</p>
+<p>这里也有两种方法来获取，一种是直接拿取Gradle脚本里创建时的渠道名，直接通过BuildConfig类的FLAVOR字段来获取；一种是拿取我们在Manifest里设置的元数据的value值，操作稍复杂一些。具体代码如下：</p>
+<pre><code>object FlavorConfig {
+
+    const val REDFIN = &quot;redfin&quot;
+    const val CHEETAH = &quot;cheetah&quot;
+
+    private var manifestMetaData = &quot;&quot;
+    private var gradleData = &quot;&quot;
+
+    init {
+        val appInfo = appContext.packageManager.getApplicationInfo(
+            appContext.packageName,
+            PackageManager.GET_META_DATA
+        )
+        manifestMetaData = appInfo.metaData.getString(&quot;CHANNEL&quot;) as String
+        gradleData = BuildConfig.FLAVOR
+    }
+
+    fun getMetaDataOne() = manifestMetaData.apply {
+        infoLog(&quot;metaData value: $this&quot;)
+    }
+
+    fun getMeatDataTwo() = gradleData.apply {
+        infoLog(&quot;gradle metaData value: $this&quot;)
+    }
+}
+</code></pre>
+<p>​</p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://stephencardev.github.io/tag/k5HqzrYnY/" class="tag">
+                    应用层
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://stephencardev.github.io/post/android-duo-jin-cheng-tong-xin-zhi-dai-hui-diao-de-aidl-shi-xian/">
+                  <h3 class="post-title">
+                    Android多进程通信之带回调的AIDL实现
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+                <div id="gitalk-container" data-aos="fade-in"></div>
+              
+
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'Ov23lixgLaEQaGAsum3I',
+        clientSecret: '9b93916755a6b8704580aa244f9fab01735829bf',
+        repo: 'stephencardev.github.io',
+        owner: 'StephenCarDev',
+        admin: ['StephenCarDev'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>
